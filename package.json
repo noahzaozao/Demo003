@@ -1,5 +1,5 @@
 {
-  "name": "demo002",
+  "name": "demo003",
   "version": "1.0.0",
   "description": "",
   "main": "src/main.js",
@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@pixi/tilemap": "^3.2.2",
+    "astar-typescript": "^1.2.5",
     "pixi.js": "^6.5.1"
   }
 }

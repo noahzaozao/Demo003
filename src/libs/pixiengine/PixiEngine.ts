@@ -18,13 +18,15 @@ export default class PixiEngine {
     public stage: PIXI.Container
     // 地图层
     public mapLayer: PIXI.Container
+    // 路径调试层
+    public pathDebugLayer?: PIXI.Container
     // 玩家层
     public playerLayer?: PIXI.Container
 
     // 随机地图
     private randomMap: RandomMap
     // 地图数据
-    private mapData: Array<Array<number>>
+    private mapData: any // Array<Array<number>>
 
     // 地图
     private tileMap?: CompositeTilemap
@@ -32,7 +34,6 @@ export default class PixiEngine {
     private player?: Player
 
     constructor(width: number, height: number) {
-
         this.width = width
         this.height = height
         
@@ -43,10 +44,17 @@ export default class PixiEngine {
         })
 
         this.stage = this.app.stage
+        this.stage.interactive = true
+
         this.mapLayer = new PIXI.Container()
         this.playerLayer = new PIXI.Container()
+        this.mapLayer.interactive = true
+        this.pathDebugLayer = new PIXI.Container()
+        
         this.stage.addChild(this.mapLayer)
+        this.stage.addChild(this.pathDebugLayer)
         this.stage.addChild(this.playerLayer)
+        
 
         this.tileMap = new CompositeTilemap()
         this.tileMap.scale.x = 0.5
@@ -63,7 +71,8 @@ export default class PixiEngine {
             pickaxe: '/images/pickaxe.png',
             land: '/images/land.png',
             wall: '/images/wall.png',
-            actor: '/images/Actor1-0-0.png',
+            // actor: '/images/Actor1-0-0.png',
+            actor: '/actors/actor.json',
         }
         for (const resKey in resList) {
             Assets.add(resKey, resList[resKey])
@@ -89,21 +98,13 @@ export default class PixiEngine {
         if (this.player) {
             const pos = this.player.getPos()
             if (e.key == 'a') {
-                if (this.canMove(pos.x / 48 - 1, pos.y / 48)) {
-                    this.player.setPos(pos.x - 48, pos.y)
-                }
+                this.player.moveTo(pos.x - 48, pos.y)
             } else if (e.key == 'd') {
-                if (this.canMove(pos.x / 48 + 1, pos.y / 48)) {
-                    this.player.setPos(pos.x + 48, pos.y)
-                }
+                this.player.moveTo(pos.x + 48, pos.y)
             } else if (e.key == 'w') {
-                if (this.canMove(pos.x / 48, pos.y / 48 - 1)) {
-                    this.player.setPos(pos.x, pos.y - 48)
-                }
+                this.player.moveTo(pos.x, pos.y - 48)
             } else if (e.key == 's') {
-                if (this.canMove(pos.x / 48, pos.y / 48 + 1)) {
-                    this.player.setPos(pos.x, pos.y + 48)
-                }
+                this.player.moveTo(pos.x, pos.y + 48)
             }
         }
     }
@@ -113,24 +114,32 @@ export default class PixiEngine {
          * 资源加载完成
          */
 
-        // 初始化玩家
-        this.player = new Player(48, 48)
-        if (this.playerLayer) {
-            this.playerLayer.addChild(this.player.playerSprite)
-        }
         // 加载地图
         this.onLoadMap()
 
-        const that = this
-        const interval = setInterval(function() {
-            const bool = that.randomMap.onCreate()
-            if (bool == false) {
-                clearInterval(interval)
-            }
-            // 生成地图数据
-            that.mapData = that.randomMap.getData()
-            that.onLoadMap()
-        }, 100)
+        this.randomMap.create()
+        // 生成地图数据
+        this.mapData = this.randomMap.getData()
+        this.onLoadMap()
+
+        // 初始化玩家
+        // this.player = new Player(48, 48, this.mapData, this.pathDebugLayer)
+        this.player = new Player(48, 48, this.mapData)
+
+        if (this.playerLayer) {
+            this.playerLayer.addChild(this.player.playerSprite)
+        }
+        // this.player.setMapData(this.mapData)
+
+        if (this.mapLayer) {
+            this.mapLayer.hitArea = new PIXI.Rectangle(0, 0, this.width, this.height)
+            this.mapLayer.on('pointerdown', this._mapPointerDown.bind(this))
+        }
+
+        this.app.ticker.add((delta: number) => {
+            this.player?.onMove(delta)
+            this.player?.onUpdate(delta)
+        })
     }
 
     onLoadMap() {
@@ -146,4 +155,12 @@ export default class PixiEngine {
             }
         }
     }
+
+    _mapPointerDown(event: PIXI.InteractionEvent) {
+        const movePos = event.data.global
+        if (this.player) {
+            this.player.moveTo(movePos.x, movePos.y)
+        }
+    }
+
 }

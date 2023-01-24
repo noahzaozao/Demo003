@@ -49,11 +49,11 @@ export default class RandomMap {
         return this.data
     }
 
-    // create() {
-    //     while (this.acc.length < this.num) {
-    //         this.onCreate()
-    //     }
-    // }
+    create() {
+        while (this.acc.length < this.num) {
+            this.onCreate()
+        }
+    }
 
 
     indexToPos(index: number, c: number): any {
